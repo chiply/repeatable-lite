@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        emacs-version: [29.4, snapshot]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jcs090218/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs-version }}
+      - uses: emacs-eask/setup-eask@master
+        with:
+          version: 'snapshot'
+      - run: eask install-deps
+      - run: eask compile
+      - run: eask lint package
+        continue-on-error: true
+      - run: eask lint checkdoc
+        continue-on-error: true
