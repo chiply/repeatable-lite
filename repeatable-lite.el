@@ -5,11 +5,24 @@
 ;; Author: Charlie Holland <mister.chiply@gmail.com>
 ;; Maintainer: Charlie Holland <mister.chiply@gmail.com>
 ;; URL: https://github.com/chiply/repeatable-lite
-;; x-release-please-start-version
-;; Version: 0.1.3
-;; x-release-please-end
+;; Version: 0.1.3 ;; x-release-please-version
 ;; Package-Requires: ((emacs "29.1") (which-key "3.5.0"))
 ;; Keywords: convenience, keys
+;;
+;; This file is not part of GNU Emacs.
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -18,26 +31,37 @@
 ;; that keymap and can immediately press another key to execute another command
 ;; without re-typing the prefix.
 ;;
-;; The main entry point is the `**' macro, which wraps any interactive command
-;; to make it repeatable within its prefix keymap.
+;; The main entry point is the `repeatable-lite-wrap' macro, which wraps any
+;; interactive command to make it repeatable within its prefix keymap.
 ;;
 ;; Example usage with general.el:
 ;;
 ;;   (general-define-key
-;;    "C-c w h" (** windmove-left)
-;;    "C-c w l" (** windmove-right)
-;;    "C-c w j" (** windmove-down)
-;;    "C-c w k" (** windmove-up))
+;;    "C-c w h" (repeatable-lite-wrap windmove-left)
+;;    "C-c w l" (repeatable-lite-wrap windmove-right)
+;;    "C-c w j" (repeatable-lite-wrap windmove-down)
+;;    "C-c w k" (repeatable-lite-wrap windmove-up))
 ;;
 ;; After pressing C-c w h to move left, you can press h/l/j/k repeatedly
 ;; without the C-c w prefix.  Press any key outside the keymap to exit.
 ;;
 ;; Which-key integration shows available keys while in the repeatable loop.
+;;
+;; Note: This package uses some which-key internal APIs
+;; (`which-key--create-buffer-and-show', `which-key--timer') to manage
+;; the popup lifecycle during repeatable loops.  There is no public API
+;; for programmatically showing and dismissing the which-key buffer, so
+;; these internals are necessary for correct behavior.
 
 ;;; Code:
 
 (require 'seq)
 (require 'which-key)
+
+(defgroup repeatable-lite nil
+  "Repeatable prefix commands with which-key."
+  :group 'convenience
+  :prefix "repeatable-lite-")
 
 (defvar repeatable-lite-current-prefix nil
   "The current prefix key sequence during a repeatable loop.")
@@ -136,7 +160,7 @@ Saves the current which-key settings before modifying them."
      ((string= last-key "C-h") (funcall prefix-help-command))
      (local-binding
       (unless (and (symbolp local-binding)
-                   (string-prefix-p "**" (symbol-name local-binding)))
+                   (string-prefix-p "repeatable-lite-wrap-" (symbol-name local-binding)))
         (repeatable-lite--kill-which-key))
       (call-interactively local-binding))
      (global-binding
@@ -158,7 +182,7 @@ Saves the current which-key settings before modifying them."
       (repeatable-lite--kill-which-key)))))
 
 ;;;###autoload
-(defmacro ** (function)
+(defmacro repeatable-lite-wrap (function)
   "Make FUNCTION repeatable within its prefix keymap.
 After calling the wrapped command, the prefix keymap stays active
 so you can press another key without re-typing the prefix.
@@ -166,9 +190,9 @@ so you can press another key without re-typing the prefix.
 FUNCTION can be a symbol or a lambda.
 
 Usage:
-  (define-key my-map \"h\" (** windmove-left))
-  (define-key my-map \"l\" (** windmove-right))"
-  `(defun ,(intern (format "**%s" function)) ()
+  (define-key my-map \"h\" (repeatable-lite-wrap windmove-left))
+  (define-key my-map \"l\" (repeatable-lite-wrap windmove-right))"
+  `(defun ,(intern (format "repeatable-lite-wrap-%s" function)) ()
      (interactive)
      (let* ((keys (this-command-keys-vector))
             (prefix (or repeatable-lite-current-prefix
@@ -185,9 +209,10 @@ Usage:
 (define-minor-mode repeatable-lite-mode
   "Global minor mode enabling repeatable prefix key commands.
 When enabled, advises `which-key-C-h-dispatch', `keyboard-quit',
-and `undefined' so that the `**' macro can keep the prefix keymap
-active after a command executes."
+and `undefined' so that the `repeatable-lite-wrap' macro can keep the
+prefix keymap active after a command executes."
   :global t
+  :group 'repeatable-lite
   :lighter nil
   (if repeatable-lite-mode
       (progn
