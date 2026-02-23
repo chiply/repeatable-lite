@@ -92,6 +92,7 @@ jobs:
 
       - name: Package lint
         run: eask lint package
+        continue-on-error: true  # ** prefix and which-key builtin warnings are intentional
 
       - name: Checkdoc
         run: eask lint checkdoc

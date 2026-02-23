@@ -38,7 +38,7 @@
 
 (require 'which-key)
 
-(defvar repeatable-current-prefix nil
+(defvar repeatable-lite-current-prefix nil
   "The current prefix key sequence during a repeatable loop.")
 
 (defun repeatable-lite--which-key-settings ()
@@ -161,10 +161,10 @@ Usage:
   `(defun ,(intern (format "**%s" function)) ()
      (interactive)
      (let* ((keys (this-command-keys-vector))
-            (prefix (or repeatable-current-prefix
+            (prefix (or repeatable-lite-current-prefix
                         (seq-take keys (1- (length keys))))))
        (call-interactively ',function)
-       (setq repeatable-current-prefix nil)
+       (setq repeatable-lite-current-prefix nil)
        (setq current-prefix-arg nil)
        (repeatable-lite--reload-key-sequence prefix)
        (unless (bufferp (get-buffer which-key-buffer-name))

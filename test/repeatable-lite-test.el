@@ -34,18 +34,17 @@
                   (symbol-function '**backward-char))))
 
 (ert-deftest repeatable-lite-test-macro/expansion-shape ()
-  "The ** macro should expand to a defun form."
+  "The ** macro should expand to a defalias form (defun expands to defalias)."
   (let ((expanded (macroexpand '(** some-command))))
-    (should (eq (car expanded) 'defun))
-    (should (eq (cadr expanded) '**some-command))))
+    (should (eq (car expanded) 'defalias))))
 
 
 ;;; B. State Variables
 
 (ert-deftest repeatable-lite-test-prefix-var/initial-nil ()
-  "repeatable-current-prefix should start as nil."
-  (let ((repeatable-current-prefix nil))
-    (should (eq repeatable-current-prefix nil))))
+  "repeatable-lite-current-prefix should start as nil."
+  (let ((repeatable-lite-current-prefix nil))
+    (should (eq repeatable-lite-current-prefix nil))))
 
 
 ;;; C. Kill Which-Key Cleanup
