@@ -57,6 +57,9 @@ jobs:
       - name: Byte compile
         run: eask compile
 
+      - name: Run tests
+        run: eask test ert test/repeatable-lite-test.el
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -89,8 +92,12 @@ jobs:
 
       - name: Package lint
         run: eask lint package
-        continue-on-error: true
 
       - name: Checkdoc
         run: eask lint checkdoc
-        continue-on-error: true
+
+      - name: Elisp lint
+        run: eask lint elisp-lint
+
+      - name: Relint
+        run: eask lint relint
