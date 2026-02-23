@@ -18,7 +18,8 @@ eask install-deps
 
 ```elisp
 (use-package repeatable-lite
-  :ensure (:host github :repo "chiply/repeatable-lite"))
+  :ensure (:host github :repo "chiply/repeatable-lite")
+  :config (repeatable-lite-mode 1))
 ```
 
 ### Manual
@@ -28,6 +29,7 @@ Clone this repository and add it to your `load-path`:
 ```elisp
 (add-to-list 'load-path "/path/to/repeatable-lite")
 (require 'repeatable-lite)
+(repeatable-lite-mode 1)
 ```
 
 ## Usage

@@ -49,8 +49,6 @@
   (setq which-key-persistent-popup t)
   (which-key-mode +1))
 
-(advice-add 'which-key-C-h-dispatch :before #'repeatable-lite--which-key-settings)
-
 (defun repeatable-lite--prefix-help (&optional key-seq)
   "Show which-key help for KEY-SEQ and read the next key."
   (interactive)
@@ -86,7 +84,6 @@
   (interactive)
   (let* ((keys (this-command-keys-vector))
          (prefix (seq-take keys (1- (length keys))))
-         (_km (copy-keymap (key-binding prefix 'accept-default)))
          (key (read-key "C-h (which-key):")))
     (cond ((eq key ?\C-h) (repeatable-lite--prefix-help prefix))
           (t (message "Invalid key")))))
@@ -107,7 +104,7 @@
           ((equal (car current-prefix-arg) 4) 1)
           ((equal (car current-prefix-arg) 16) 2)
           ((equal (car current-prefix-arg) 64) 3)
-          ((equal (car current-prefix-arg) 256) 4))
+          (t 4))
          21)
         (seq-take ksv (1- (length ksv))))))
      (t (repeatable-lite--kill-which-key)))))
@@ -171,8 +168,22 @@ Usage:
          (setq prefix-help-command 'repeatable-lite--versatile-C-h))
        (repeatable-lite--read-key-sequence))))
 
-(advice-add #'keyboard-quit :before #'repeatable-lite--kill-which-key)
-(advice-add #'undefined :override #'repeatable-lite--process-undefined)
+;;;###autoload
+(define-minor-mode repeatable-lite-mode
+  "Global minor mode enabling repeatable prefix key commands.
+When enabled, advises `which-key-C-h-dispatch', `keyboard-quit',
+and `undefined' so that the `**' macro can keep the prefix keymap
+active after a command executes."
+  :global t
+  :lighter nil
+  (if repeatable-lite-mode
+      (progn
+        (advice-add 'which-key-C-h-dispatch :before #'repeatable-lite--which-key-settings)
+        (advice-add #'keyboard-quit :before #'repeatable-lite--kill-which-key)
+        (advice-add #'undefined :override #'repeatable-lite--process-undefined))
+    (advice-remove 'which-key-C-h-dispatch #'repeatable-lite--which-key-settings)
+    (advice-remove #'keyboard-quit #'repeatable-lite--kill-which-key)
+    (advice-remove #'undefined #'repeatable-lite--process-undefined)))
 
 (provide 'repeatable-lite)
 
