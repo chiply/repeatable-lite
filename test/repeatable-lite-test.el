@@ -51,14 +51,15 @@
 ;;; C. Kill Which-Key Cleanup
 
 (ert-deftest repeatable-lite-test-kill-which-key/resets-persistent-popup ()
-  "Killing which-key should set which-key-persistent-popup to t."
+  "Killing which-key should restore saved which-key-persistent-popup."
   (cl-letf (((symbol-function 'get-buffer) (lambda (_) nil))
             ((symbol-function 'which-key-mode) #'ignore)
             ((symbol-function 'cancel-timer) #'ignore))
     (let ((which-key-persistent-popup nil)
           (which-key--timer nil)
           (which-key-idle-delay 0.5)
-          (which-key-idle-secondary-delay 0.5))
+          (which-key-idle-secondary-delay 0.5)
+          (repeatable-lite--saved-persistent-popup t))
       (repeatable-lite--kill-which-key)
       (should (eq which-key-persistent-popup t)))))
 
@@ -76,16 +77,17 @@
       (should (eq current-prefix-arg nil)))))
 
 (ert-deftest repeatable-lite-test-kill-which-key/sets-idle-delay ()
-  "Killing which-key should set idle delay to a large value."
+  "Killing which-key should restore saved idle delay."
   (cl-letf (((symbol-function 'get-buffer) (lambda (_) nil))
             ((symbol-function 'which-key-mode) #'ignore)
             ((symbol-function 'cancel-timer) #'ignore))
     (let ((which-key-persistent-popup nil)
           (which-key--timer nil)
           (which-key-idle-delay 0.5)
-          (which-key-idle-secondary-delay 0.5))
+          (which-key-idle-secondary-delay 0.5)
+          (repeatable-lite--saved-idle-delay 0.8))
       (repeatable-lite--kill-which-key)
-      (should (= which-key-idle-delay 10000)))))
+      (should (= which-key-idle-delay 0.8)))))
 
 (ert-deftest repeatable-lite-test-kill-which-key/kills-buffer ()
   "Killing which-key should kill the which-key buffer if it exists."

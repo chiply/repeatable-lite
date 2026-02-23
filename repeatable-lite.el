@@ -36,13 +36,27 @@
 
 ;;; Code:
 
+(require 'seq)
 (require 'which-key)
 
 (defvar repeatable-lite-current-prefix nil
   "The current prefix key sequence during a repeatable loop.")
 
+(defvar repeatable-lite--saved-idle-delay nil
+  "Saved value of `which-key-idle-delay' before repeatable-lite modifies it.")
+
+(defvar repeatable-lite--saved-idle-secondary-delay nil
+  "Saved value of `which-key-idle-secondary-delay'.")
+
+(defvar repeatable-lite--saved-persistent-popup nil
+  "Saved value of `which-key-persistent-popup'.")
+
 (defun repeatable-lite--which-key-settings ()
-  "Configure which-key for repeatable display."
+  "Configure which-key for repeatable display.
+Saves the current which-key settings before modifying them."
+  (setq repeatable-lite--saved-idle-delay which-key-idle-delay
+        repeatable-lite--saved-idle-secondary-delay which-key-idle-secondary-delay
+        repeatable-lite--saved-persistent-popup which-key-persistent-popup)
   (which-key-mode -1)
   (setq which-key-idle-delay 0.1)
   (setq which-key-idle-secondary-delay 0.1)
@@ -64,7 +78,7 @@
           unread-command-events next-event)))
 
 (defun repeatable-lite--kill-which-key ()
-  "Kill the which-key buffer and reset state."
+  "Kill the which-key buffer and restore original which-key state."
   (interactive)
   (let ((buf (get-buffer which-key-buffer-name)))
     (when (bufferp buf) (kill-buffer buf)))
@@ -72,9 +86,9 @@
   (when (and (boundp 'which-key--timer) (timerp which-key--timer))
     (cancel-timer which-key--timer))
   (which-key-mode -1)
-  (setq which-key-idle-delay 10000)
-  (setq which-key-idle-secondary-delay 0.01)
-  (setq which-key-persistent-popup t)
+  (setq which-key-idle-delay (or repeatable-lite--saved-idle-delay 1.0)
+        which-key-idle-secondary-delay (or repeatable-lite--saved-idle-secondary-delay 0.05)
+        which-key-persistent-popup (or repeatable-lite--saved-persistent-popup nil))
   (which-key-mode +1)
   (setq prefix-help-command 'repeatable-lite--versatile-C-h)
   (setq current-prefix-arg nil))
