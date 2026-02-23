@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/chiply/repeatable-lite/compare/v0.1.1...v0.1.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* add cl-lib require in tests and MELPA recipe ([416ac9d](https://github.com/chiply/repeatable-lite/commit/416ac9d5f43bb5a54d18fcf77f9decf0b20664f1))
+* rename repeatable-current-prefix and fix test expansion check ([b58039e](https://github.com/chiply/repeatable-lite/commit/b58039e4176f2ad60c4e171928a6db0e59e56c24))
+
 ## [0.1.1](https://github.com/chiply/repeatable-lite/compare/v0.1.0...v0.1.1) (2026-02-19)
 
 
