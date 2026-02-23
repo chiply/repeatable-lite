@@ -1,7 +1,7 @@
 ; -*- lexical-binding: t -*-
 
 ; x-release-please-start-version
-(package "repeatable-lite" "0.1.2" "Repeatable prefix commands with which-key")
+(package "repeatable-lite" "0.1.3" "Repeatable prefix commands with which-key")
 ; x-release-please-end
 (website-url "https://github.com/chiply/repeatable-lite")
 (keywords "convenience" "keys")
