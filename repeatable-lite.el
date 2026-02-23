@@ -135,9 +135,8 @@ Saves the current which-key settings before modifying them."
      ((string= last-key "C-u") (repeatable-lite--process-undefined ksv))
      ((string= last-key "C-h") (funcall prefix-help-command))
      (local-binding
-      (unless (condition-case nil
-                  (string-match "^\\*" (symbol-name local-binding))
-                (error nil))
+      (unless (and (symbolp local-binding)
+                   (string-prefix-p "**" (symbol-name local-binding)))
         (repeatable-lite--kill-which-key))
       (call-interactively local-binding))
      (global-binding
