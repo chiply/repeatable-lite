@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/chiply/repeatable-lite/compare/v0.1.2...v0.1.3) (2026-02-23)
+
+
+### Bug Fixes
+
+* save and restore which-key settings, add (require 'seq) ([98c6d11](https://github.com/chiply/repeatable-lite/commit/98c6d11cc75e9741c8de42da5bd0e0e4bde8f2f9))
+* wrap advice in minor mode and fix C-u overflow and nil keymap ([c6db56d](https://github.com/chiply/repeatable-lite/commit/c6db56d5ad0cdec792bb968250493c8072b1a7fa))
+
 ## [0.1.2](https://github.com/chiply/repeatable-lite/compare/v0.1.1...v0.1.2) (2026-02-23)
 
 
