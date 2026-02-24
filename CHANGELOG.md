@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0](https://github.com/chiply/repeatable-lite/compare/v0.1.3...v0.2.0) (2026-02-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* the ** macro is renamed to repeatable-lite-wrap. Update all keybinding configs: (** fn) -> (repeatable-lite-wrap fn)
+
+### Bug Fixes
+
+* revert to block-style release-please version markers ([4eb2a02](https://github.com/chiply/repeatable-lite/commit/4eb2a028f3772830bdbf22d5eb0eaed26c111c71))
+* update tests to use renamed repeatable-lite-wrap macro ([8de5632](https://github.com/chiply/repeatable-lite/commit/8de56323ff430679d39f6f6131b078a2e6ba6a7b))
+
+
+### Miscellaneous Chores
+
+* prepare for MELPA submission ([5969aff](https://github.com/chiply/repeatable-lite/commit/5969affcf371d1090b79e46a4ef3c48fa77587ae))
+
 ## [0.1.3](https://github.com/chiply/repeatable-lite/compare/v0.1.2...v0.1.3) (2026-02-23)
 
 
