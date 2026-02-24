@@ -16,27 +16,27 @@
 ;;; A. Macro Expansion
 
 (ert-deftest repeatable-lite-test-macro/creates-function ()
-  "The ** macro should create a function named **<function>."
-  (** ignore)
-  (should (fboundp '**ignore)))
+  "The repeatable-lite-wrap macro should create a function named repeatable-lite-wrap-<function>."
+  (repeatable-lite-wrap ignore)
+  (should (fboundp 'repeatable-lite-wrap-ignore)))
 
 (ert-deftest repeatable-lite-test-macro/function-is-interactive ()
-  "The ** macro generated function should be interactive."
-  (** ignore)
-  (should (commandp '**ignore)))
+  "The repeatable-lite-wrap macro generated function should be interactive."
+  (repeatable-lite-wrap ignore)
+  (should (commandp 'repeatable-lite-wrap-ignore)))
 
 (ert-deftest repeatable-lite-test-macro/unique-names ()
   "Different functions should produce uniquely named wrappers."
-  (** forward-char)
-  (** backward-char)
-  (should (fboundp '**forward-char))
-  (should (fboundp '**backward-char))
-  (should-not (eq (symbol-function '**forward-char)
-                  (symbol-function '**backward-char))))
+  (repeatable-lite-wrap forward-char)
+  (repeatable-lite-wrap backward-char)
+  (should (fboundp 'repeatable-lite-wrap-forward-char))
+  (should (fboundp 'repeatable-lite-wrap-backward-char))
+  (should-not (eq (symbol-function 'repeatable-lite-wrap-forward-char)
+                  (symbol-function 'repeatable-lite-wrap-backward-char))))
 
 (ert-deftest repeatable-lite-test-macro/expansion-shape ()
-  "The ** macro should expand to a defalias form (defun expands to defalias)."
-  (let ((expanded (macroexpand '(** some-command))))
+  "The repeatable-lite-wrap macro should expand to a defalias form (defun expands to defalias)."
+  (let ((expanded (macroexpand '(repeatable-lite-wrap some-command))))
     (should (eq (car expanded) 'defalias))))
 
 
