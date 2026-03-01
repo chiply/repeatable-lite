@@ -6,7 +6,7 @@
 ;; Maintainer: Charlie Holland <mister.chiply@gmail.com>
 ;; URL: https://github.com/chiply/repeatable-lite
 ;; x-release-please-start-version
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; x-release-please-end
 ;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: convenience, keys
