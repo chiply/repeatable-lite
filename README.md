@@ -1,5 +1,8 @@
 # repeatable-lite
 
+[![CI](https://github.com/chiply/repeatable-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/chiply/repeatable-lite/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 A lightweight Emacs package for making prefix key commands repeatable with which-key integration.
 
 ## Overview
@@ -8,13 +11,7 @@ After executing a command within a prefix keymap, you stay in that keymap and ca
 
 ## Installation
 
-### Using Eask
-
-```bash
-eask install-deps
-```
-
-### Using elpaca (with use-package)
+### With elpaca (use-package)
 
 ```elisp
 (use-package repeatable-lite
@@ -22,9 +19,17 @@ eask install-deps
   :config (repeatable-lite-mode 1))
 ```
 
+### With straight.el (use-package)
+
+```elisp
+(use-package repeatable-lite
+  :straight (:host github :repo "chiply/repeatable-lite")
+  :config (repeatable-lite-mode 1))
+```
+
 ### Manual
 
-Clone this repository and add it to your `load-path`:
+Clone the repository and add it to your `load-path`:
 
 ```elisp
 (add-to-list 'load-path "/path/to/repeatable-lite")
@@ -62,4 +67,4 @@ After pressing `C-c w h` to move left, you can press `h`/`l`/`j`/`k` repeatedly 
 
 ## License
 
-GPL-3.0
+GPL-3.0-or-later
