@@ -62,8 +62,7 @@ After pressing `C-c w h` to move left, you can press `h`/`l`/`j`/`k` repeatedly 
 
 ## Requirements
 
-- Emacs 29.1+
-- which-key 3.5.0+
+- Emacs 30.1+ (which-key is built-in since Emacs 30.1)
 
 ## License
 

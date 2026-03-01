@@ -10,8 +10,7 @@
 (script "test" "eask test ert test/repeatable-lite-test.el")
 (source "gnu")
 (source "melpa")
-(depends-on "emacs" "29.1")
-(depends-on "which-key" "3.5.0")
+(depends-on "emacs" "30.1")
 (development
  (depends-on "package-lint")
  (depends-on "elisp-lint")

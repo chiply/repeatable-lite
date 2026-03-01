@@ -8,7 +8,7 @@
 ;; x-release-please-start-version
 ;; Version: 0.2.0
 ;; x-release-please-end
-;; Package-Requires: ((emacs "29.1") (which-key "3.5.0"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: convenience, keys
 ;;
 ;; This file is not part of GNU Emacs.
@@ -120,11 +120,11 @@ Saves the current which-key settings before modifying them."
   (setq current-prefix-arg nil))
 
 (defun repeatable-lite--versatile-C-h ()
-  "Handle C-h in a repeatable context with multiple dispatch options."
+  "Handle \\`C-h' in a repeatable context with multiple dispatch options."
   (interactive)
   (let* ((keys (this-command-keys-vector))
          (prefix (seq-take keys (1- (length keys))))
-         (key (read-key "C-h (which-key):")))
+         (key (read-key "\\`C-h' (which-key):")))
     (cond ((eq key ?\C-h) (repeatable-lite--prefix-help prefix))
           (t (message "Invalid key")))))
 
