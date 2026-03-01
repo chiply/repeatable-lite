@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/chiply/repeatable-lite/compare/v0.2.0...v0.2.1) (2026-03-01)
+
+
+### Bug Fixes
+
+* bump min Emacs to 30.1, drop which-key dependency, fix checkdoc warnings ([328e5f0](https://github.com/chiply/repeatable-lite/commit/328e5f079beda0f05873d8174be831d26b466977))
+* update CI for Emacs 30.1+ minimum, remove continue-on-error on package-lint ([feec14f](https://github.com/chiply/repeatable-lite/commit/feec14fb66b181d4372c74349090ec55241f64db))
+
 ## [0.2.0](https://github.com/chiply/repeatable-lite/compare/v0.1.3...v0.2.0) (2026-02-24)
 
 
