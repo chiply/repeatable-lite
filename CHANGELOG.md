@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/chiply/repeatable-lite/compare/v0.2.1...v0.2.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* install Nix before magic-nix-cache-action in CI ([b0946c2](https://github.com/chiply/repeatable-lite/commit/b0946c2c5189bbb1ca1e1145b941c3da8156fdc6))
+
 ## [0.2.1](https://github.com/chiply/repeatable-lite/compare/v0.2.0...v0.2.1) (2026-03-01)
 
 
