@@ -77,24 +77,49 @@
 (defvar repeatable-lite--saved-persistent-popup nil
   "Saved value of `which-key-persistent-popup'.")
 
+(defvar repeatable-lite--active nil
+  "Non-nil when a repeatable loop has modified which-key settings.")
+
+(defcustom repeatable-lite-help-backends
+  '((?\C-h "C-h" "which-key" repeatable-lite--prefix-help))
+  "Alist of help backends for `repeatable-lite--versatile-C-h'.
+Each entry is (KEY KEY-LABEL DESCRIPTION HANDLER).
+KEY is the character to match after the initial C-h press.
+KEY-LABEL is the display string for the key.
+DESCRIPTION names the backend.
+HANDLER is called with two arguments: KEYMAP and PREFIX."
+  :type '(repeat (list character string string function))
+  :group 'repeatable-lite)
+
+(defun repeatable-lite--restart-which-key-timer ()
+  "Restart the which-key idle timer with current delay settings.
+Avoids toggling `which-key-mode' which has side effects like
+resetting `prefix-help-command'."
+  (when (and (boundp 'which-key--timer) (timerp which-key--timer))
+    (cancel-timer which-key--timer))
+  (setq which-key--timer
+        (run-with-idle-timer which-key-idle-delay t #'which-key--update)))
+
 (defun repeatable-lite--which-key-settings ()
   "Configure which-key for repeatable display.
 Saves the current which-key settings before modifying them."
-  (setq repeatable-lite--saved-idle-delay which-key-idle-delay
-        repeatable-lite--saved-idle-secondary-delay which-key-idle-secondary-delay
-        repeatable-lite--saved-persistent-popup which-key-persistent-popup)
-  (which-key-mode -1)
-  (setq which-key-idle-delay 0.1)
-  (setq which-key-idle-secondary-delay 0.1)
-  (setq which-key-persistent-popup t)
-  (which-key-mode +1))
+  (unless repeatable-lite--active
+    (setq repeatable-lite--saved-idle-delay which-key-idle-delay
+          repeatable-lite--saved-idle-secondary-delay which-key-idle-secondary-delay
+          repeatable-lite--saved-persistent-popup which-key-persistent-popup
+          repeatable-lite--active t))
+  (setq which-key-idle-delay 0.1
+        which-key-idle-secondary-delay 0.1
+        which-key-persistent-popup t)
+  (repeatable-lite--restart-which-key-timer))
 
-(defun repeatable-lite--prefix-help (&optional key-seq)
-  "Show which-key help for KEY-SEQ and read the next key."
+(defun repeatable-lite--prefix-help (_keymap prefix)
+  "Show which-key help for PREFIX and read the next key.
+KEYMAP is ignored; PREFIX is the key sequence to display bindings for."
   (interactive)
   (setq prefix-help-command 'which-key-C-h-dispatch)
-  (which-key--create-buffer-and-show key-seq)
-  (which-key-reload-key-sequence key-seq)
+  (which-key--create-buffer-and-show prefix)
+  (which-key-reload-key-sequence prefix)
   (repeatable-lite--read-key-sequence))
 
 (defun repeatable-lite--reload-key-sequence (key-seq)
@@ -108,25 +133,35 @@ Saves the current which-key settings before modifying them."
   (interactive)
   (let ((buf (get-buffer which-key-buffer-name)))
     (when (bufferp buf) (kill-buffer buf)))
-  (setq which-key-persistent-popup nil)
-  (when (and (boundp 'which-key--timer) (timerp which-key--timer))
-    (cancel-timer which-key--timer))
-  (which-key-mode -1)
-  (setq which-key-idle-delay (or repeatable-lite--saved-idle-delay 1.0)
-        which-key-idle-secondary-delay (or repeatable-lite--saved-idle-secondary-delay 0.05)
-        which-key-persistent-popup (or repeatable-lite--saved-persistent-popup nil))
-  (which-key-mode +1)
+  (when repeatable-lite--active
+    (setq which-key-idle-delay repeatable-lite--saved-idle-delay
+          which-key-idle-secondary-delay repeatable-lite--saved-idle-secondary-delay
+          which-key-persistent-popup repeatable-lite--saved-persistent-popup
+          repeatable-lite--active nil)
+    (repeatable-lite--restart-which-key-timer))
   (setq prefix-help-command 'repeatable-lite--versatile-C-h)
   (setq current-prefix-arg nil))
 
 (defun repeatable-lite--versatile-C-h ()
-  "Handle \\`C-h' in a repeatable context with multiple dispatch options."
+  "Dispatch to a help backend after \\`C-h' in a prefix sequence.
+Available backends are configured via `repeatable-lite-help-backends'."
   (interactive)
   (let* ((keys (this-command-keys-vector))
          (prefix (seq-take keys (1- (length keys))))
-         (key (read-key "\\`C-h' (which-key):")))
-    (cond ((eq key ?\C-h) (repeatable-lite--prefix-help prefix))
-          (t (message "Invalid key")))))
+         (orig-km (key-binding prefix 'accept-default))
+         (km (when orig-km (copy-keymap orig-km)))
+         (prompt (concat
+                  (mapconcat
+                   (lambda (entry)
+                     (format "%s (%s)" (nth 1 entry) (nth 2 entry)))
+                   repeatable-lite-help-backends
+                   ", ")
+                  ":"))
+         (key (read-key prompt))
+         (backend (assq key repeatable-lite-help-backends)))
+    (if backend
+        (funcall (nth 3 backend) km prefix)
+      (message "Invalid key"))))
 
 (defun repeatable-lite--process-undefined (&optional ksv)
   "Handle undefined key sequence KSV during a repeatable loop."
