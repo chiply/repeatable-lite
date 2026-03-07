@@ -113,14 +113,35 @@ Saves the current which-key settings before modifying them."
         which-key-persistent-popup t)
   (repeatable-lite--restart-which-key-timer))
 
+(defvar repeatable-lite--prefix-help-pending nil
+  "Non-nil when waiting for the real command after prefix help.")
+
+(defun repeatable-lite--restore-after-prefix-help ()
+  "Restore which-key settings after a prefix command completes.
+Skips the initial help command invocation and any which-key paging
+commands (undo, page turn, etc.), cleaning up only when a real
+command executes."
+  (cond
+   (repeatable-lite--prefix-help-pending
+    (setq repeatable-lite--prefix-help-pending nil))
+   ((member this-command which-key--paging-functions)
+    nil)
+   (t
+    (remove-hook 'post-command-hook #'repeatable-lite--restore-after-prefix-help)
+    (repeatable-lite--kill-which-key))))
+
 (defun repeatable-lite--prefix-help (_keymap prefix)
-  "Show which-key help for PREFIX and read the next key.
-KEYMAP is ignored; PREFIX is the key sequence to display bindings for."
+  "Show which-key help for PREFIX.
+KEYMAP is ignored; PREFIX is the key sequence to display bindings for.
+Returns to the normal command loop so which-key can update via its
+idle timer as the user navigates sub-prefixes."
   (interactive)
-  (setq prefix-help-command 'which-key-C-h-dispatch)
+  (repeatable-lite--which-key-settings)
   (which-key--create-buffer-and-show prefix)
   (which-key-reload-key-sequence prefix)
-  (repeatable-lite--read-key-sequence))
+  (setq prefix-help-command 'which-key-C-h-dispatch)
+  (setq repeatable-lite--prefix-help-pending t)
+  (add-hook 'post-command-hook #'repeatable-lite--restore-after-prefix-help))
 
 (defun repeatable-lite--reload-key-sequence (key-seq)
   "Reload KEY-SEQ into the command loop."
@@ -196,16 +217,32 @@ Available backends are configured via `repeatable-lite-help-backends'."
      ((string= last-key "C-u") (repeatable-lite--process-undefined ksv))
      ((string= last-key "C-h") (funcall prefix-help-command))
      (local-binding
-      (unless (and (symbolp local-binding)
-                   (string-prefix-p "repeatable-lite-wrap-" (symbol-name local-binding)))
-        (repeatable-lite--kill-which-key))
-      (call-interactively local-binding))
+      (cond
+       ((keymapp local-binding)
+        ;; Sub-prefix: update which-key display and continue reading
+        (if (get-buffer which-key-buffer-name)
+            (progn
+              (which-key--create-buffer-and-show ksv)
+              (which-key-reload-key-sequence ksv)
+              (repeatable-lite--read-key-sequence))
+          (repeatable-lite--kill-which-key)
+          (repeatable-lite--reload-key-sequence ksv)
+          (setq prefix-help-command 'repeatable-lite--versatile-C-h)))
+       (t
+        (unless (and (symbolp local-binding)
+                     (string-prefix-p "repeatable-lite-wrap-" (symbol-name local-binding)))
+          (repeatable-lite--kill-which-key))
+        (call-interactively local-binding))))
      (global-binding
       (cond
        ((keymapp global-binding)
-        (repeatable-lite--kill-which-key)
-        (repeatable-lite--reload-key-sequence last-key-vector)
-        (setq prefix-help-command 'repeatable-lite--versatile-C-h))
+        (if (get-buffer which-key-buffer-name)
+            (progn
+              (which-key--create-buffer-and-show last-key-vector global-binding)
+              (repeatable-lite--read-key-sequence))
+          (repeatable-lite--kill-which-key)
+          (repeatable-lite--reload-key-sequence last-key-vector)
+          (setq prefix-help-command 'repeatable-lite--versatile-C-h)))
        (t
         (repeatable-lite--kill-which-key)
         (execute-kbd-macro last-key-vector)
