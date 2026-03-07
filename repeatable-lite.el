@@ -1,6 +1,6 @@
 ;;; repeatable-lite.el --- Repeatable prefix commands with which-key -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Charlie Holland
+;; Copyright (C) 2025-2026 Charlie Holland
 
 ;; Author: Charlie Holland <mister.chiply@gmail.com>
 ;; Maintainer: Charlie Holland <mister.chiply@gmail.com>

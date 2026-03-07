@@ -1,6 +1,6 @@
 ;;; repeatable-lite-test.el --- Tests for repeatable-lite -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Charlie Holland
+;; Copyright (C) 2025-2026 Charlie Holland
 
 ;;; Commentary:
 
