@@ -91,14 +91,16 @@ HANDLER is called with two arguments: KEYMAP and PREFIX."
   :type '(repeat (list character string string function))
   :group 'repeatable-lite)
 
-(defun repeatable-lite--restart-which-key-timer ()
-  "Restart the which-key idle timer with current delay settings.
-Avoids toggling `which-key-mode' which has side effects like
-resetting `prefix-help-command'."
-  (when (and (boundp 'which-key--timer) (timerp which-key--timer))
-    (cancel-timer which-key--timer))
-  (setq which-key--timer
-        (run-with-idle-timer which-key-idle-delay t #'which-key--update)))
+;; Replaced by `which-key--start-timer' which handles the same
+;; cancel+recreate pattern and also manages `which-key--secondary-timer-active'.
+;; (defun repeatable-lite--restart-which-key-timer ()
+;;   "Restart the which-key idle timer with current delay settings.
+;; Avoids toggling `which-key-mode' which has side effects like
+;; resetting `prefix-help-command'."
+;;   (when (and (boundp 'which-key--timer) (timerp which-key--timer))
+;;     (cancel-timer which-key--timer))
+;;   (setq which-key--timer
+;;         (run-with-idle-timer which-key-idle-delay t #'which-key--update)))
 
 (defun repeatable-lite--which-key-settings ()
   "Configure which-key for repeatable display.
@@ -111,7 +113,7 @@ Saves the current which-key settings before modifying them."
   (setq which-key-idle-delay 0.1
         which-key-idle-secondary-delay 0.1
         which-key-persistent-popup t)
-  (repeatable-lite--restart-which-key-timer))
+  (which-key--start-timer))
 
 (defvar repeatable-lite--prefix-help-pending nil
   "Non-nil when waiting for the real command after prefix help.")
@@ -143,14 +145,18 @@ idle timer as the user navigates sub-prefixes."
   (setq repeatable-lite--prefix-help-pending t)
   (add-hook 'post-command-hook #'repeatable-lite--restore-after-prefix-help))
 
-(defun repeatable-lite--reload-key-sequence (key-seq)
-  "Reload KEY-SEQ into the command loop."
-  (let ((next-event (mapcar (lambda (ev) (cons t ev)) key-seq)))
-    (setq prefix-arg current-prefix-arg
-          unread-command-events next-event)))
+;; Identical to `which-key-reload-key-sequence' when called with an
+;; argument, so all call sites now use the which-key version directly.
+;; (defun repeatable-lite--reload-key-sequence (key-seq)
+;;   "Reload KEY-SEQ into the command loop."
+;;   (let ((next-event (mapcar (lambda (ev) (cons t ev)) key-seq)))
+;;     (setq prefix-arg current-prefix-arg
+;;           unread-command-events next-event)))
 
-(defun repeatable-lite--kill-which-key ()
-  "Kill the which-key buffer and restore original which-key state."
+(defun repeatable-lite--kill-which-key (&optional replay-keys)
+  "Kill the which-key buffer and restore original which-key state.
+When REPLAY-KEYS is non-nil, reload that key sequence into the
+command loop so Emacs continues from those keys."
   (interactive)
   (let ((buf (get-buffer which-key-buffer-name)))
     (when (bufferp buf) (kill-buffer buf)))
@@ -159,9 +165,11 @@ idle timer as the user navigates sub-prefixes."
           which-key-idle-secondary-delay repeatable-lite--saved-idle-secondary-delay
           which-key-persistent-popup repeatable-lite--saved-persistent-popup
           repeatable-lite--active nil)
-    (repeatable-lite--restart-which-key-timer))
-  (setq prefix-help-command 'repeatable-lite--versatile-C-h)
-  (setq current-prefix-arg nil))
+    (which-key--start-timer))
+  (setq prefix-help-command 'repeatable-lite--versatile-C-h
+        current-prefix-arg nil)
+  (when replay-keys
+    (which-key-reload-key-sequence replay-keys)))
 
 (defun repeatable-lite--versatile-C-h ()
   "Dispatch to a help backend after \\`C-h' in a prefix sequence.
@@ -193,7 +201,7 @@ Available backends are configured via `repeatable-lite-help-backends'."
      ((string= last-key "C-u")
       (setq current-prefix-arg
             (list (* 4 (or (car current-prefix-arg) 1))))
-      (repeatable-lite--reload-key-sequence
+      (which-key-reload-key-sequence
        (vconcat
         (make-vector
          (cond
@@ -225,9 +233,7 @@ Available backends are configured via `repeatable-lite-help-backends'."
               (which-key--create-buffer-and-show ksv)
               (which-key-reload-key-sequence ksv)
               (repeatable-lite--read-key-sequence))
-          (repeatable-lite--kill-which-key)
-          (repeatable-lite--reload-key-sequence ksv)
-          (setq prefix-help-command 'repeatable-lite--versatile-C-h)))
+          (repeatable-lite--kill-which-key ksv)))
        (t
         (unless (and (symbolp local-binding)
                      (string-prefix-p "repeatable-lite-wrap-" (symbol-name local-binding)))
@@ -240,17 +246,12 @@ Available backends are configured via `repeatable-lite-help-backends'."
             (progn
               (which-key--create-buffer-and-show last-key-vector global-binding)
               (repeatable-lite--read-key-sequence))
-          (repeatable-lite--kill-which-key)
-          (repeatable-lite--reload-key-sequence last-key-vector)
-          (setq prefix-help-command 'repeatable-lite--versatile-C-h)))
+          (repeatable-lite--kill-which-key last-key-vector)))
        (t
         (repeatable-lite--kill-which-key)
-        (execute-kbd-macro last-key-vector)
-        (setq prefix-help-command 'repeatable-lite--versatile-C-h))))
+        (execute-kbd-macro last-key-vector))))
      ((string= last-key "C-S-x")
-      (repeatable-lite--kill-which-key)
-      (repeatable-lite--reload-key-sequence [24])
-      (setq prefix-help-command 'repeatable-lite--versatile-C-h))
+      (repeatable-lite--kill-which-key [24]))
      (t
       (message "No binding in local or global maps %s" key)
       (repeatable-lite--kill-which-key)))))
@@ -274,7 +275,7 @@ Usage:
        (call-interactively ',function)
        (setq repeatable-lite-current-prefix nil)
        (setq current-prefix-arg nil)
-       (repeatable-lite--reload-key-sequence prefix)
+       (which-key-reload-key-sequence prefix)
        (unless (bufferp (get-buffer which-key-buffer-name))
          (setq prefix-help-command 'repeatable-lite--versatile-C-h))
        (repeatable-lite--read-key-sequence))))
