@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/chiply/repeatable-lite/compare/v0.2.3...v0.2.4) (2026-03-07)
+
+
+### Bug Fixes
+
+* return to command loop for prefix help so which-key updates nested prefixes ([3f3306e](https://github.com/chiply/repeatable-lite/commit/3f3306e36990e62e452c4730e057fc36c4a31716))
+
 ## [0.2.3](https://github.com/chiply/repeatable-lite/compare/v0.2.2...v0.2.3) (2026-03-07)
 
 
