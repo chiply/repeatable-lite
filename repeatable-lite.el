@@ -60,6 +60,14 @@
 (require 'seq)
 (require 'which-key)
 
+;; Declare which-key internal APIs used for popup lifecycle management.
+(declare-function which-key--create-buffer-and-show "which-key")
+(declare-function which-key--start-timer "which-key")
+(declare-function which-key--popup-showing-p "which-key")
+(declare-function which-key--current-key-string "which-key")
+(declare-function which-key--full-prefix "which-key")
+(declare-function which-key--propertize "which-key")
+
 (defgroup repeatable-lite nil
   "Repeatable prefix commands with which-key."
   :group 'convenience
@@ -68,26 +76,15 @@
 (defvar repeatable-lite-current-prefix nil
   "The current prefix key sequence during a repeatable loop.")
 
-(defvar repeatable-lite--saved-idle-delay nil
-  "Saved value of `which-key-idle-delay' before repeatable-lite modifies it.")
-
-(defvar repeatable-lite--saved-idle-secondary-delay nil
-  "Saved value of `which-key-idle-secondary-delay'.")
-
-(defvar repeatable-lite--saved-persistent-popup nil
-  "Saved value of `which-key-persistent-popup'.")
-
-(defvar repeatable-lite--saved-echo-keystrokes nil
-  "Saved value of `echo-keystrokes'.")
-
-(defvar repeatable-lite--active nil
-  "Non-nil when a repeatable loop has modified which-key settings.")
+(defvar repeatable-lite--saved-settings nil
+  "Plist of saved which-key settings, or nil when no repeatable loop is active.
+A non-nil value also serves as the active flag.")
 
 (defcustom repeatable-lite-help-backends
   '((?\C-h "C-h" "which-key" repeatable-lite--prefix-help))
   "Alist of help backends for `repeatable-lite--versatile-C-h'.
 Each entry is (KEY KEY-LABEL DESCRIPTION HANDLER).
-KEY is the character to match after the initial C-h press.
+KEY is the character to match after the initial \\`C-h' press.
 KEY-LABEL is the display string for the key.
 DESCRIPTION names the backend.
 HANDLER is called with two arguments: KEYMAP and PREFIX."
@@ -96,32 +93,27 @@ HANDLER is called with two arguments: KEYMAP and PREFIX."
 
 (defcustom repeatable-lite-dismiss-key ?q
   "Key to dismiss help and return to the active prefix.
-In the which-key C-h dispatch, pressing this key hides the popup
+In the which-key \\`C-h' dispatch, pressing this key hides the popup
 and replays the prefix so the user can continue typing.
 In minibuffer-based backends, \\`C-g' serves the same purpose."
   :type 'character
   :group 'repeatable-lite)
 
-;; Replaced by `which-key--start-timer' which handles the same
-;; cancel+recreate pattern and also manages `which-key--secondary-timer-active'.
-;; (defun repeatable-lite--restart-which-key-timer ()
-;;   "Restart the which-key idle timer with current delay settings.
-;; Avoids toggling `which-key-mode' which has side effects like
-;; resetting `prefix-help-command'."
-;;   (when (and (boundp 'which-key--timer) (timerp which-key--timer))
-;;     (cancel-timer which-key--timer))
-;;   (setq which-key--timer
-;;         (run-with-idle-timer which-key-idle-delay t #'which-key--update)))
+(defvar repeatable-lite--help-keymap nil
+  "Saved keymap for the current help session, used by backend switching.")
+
+(defvar repeatable-lite--help-prefix nil
+  "Saved prefix for the current help session, used by backend switching.")
 
 (defun repeatable-lite--which-key-settings ()
   "Configure which-key for repeatable display.
 Saves the current which-key settings before modifying them."
-  (unless repeatable-lite--active
-    (setq repeatable-lite--saved-idle-delay which-key-idle-delay
-          repeatable-lite--saved-idle-secondary-delay which-key-idle-secondary-delay
-          repeatable-lite--saved-persistent-popup which-key-persistent-popup
-          repeatable-lite--saved-echo-keystrokes echo-keystrokes
-          repeatable-lite--active t))
+  (unless repeatable-lite--saved-settings
+    (setq repeatable-lite--saved-settings
+          (list :idle-delay which-key-idle-delay
+                :idle-secondary-delay which-key-idle-secondary-delay
+                :persistent-popup which-key-persistent-popup
+                :echo-keystrokes echo-keystrokes)))
   (setq which-key-idle-delay 0.1
         which-key-idle-secondary-delay 0.1
         which-key-persistent-popup t
@@ -146,7 +138,7 @@ command executes."
     (repeatable-lite--kill-which-key))))
 
 (defun repeatable-lite--which-key-dispatch-or-switch ()
-  "Replacement for `which-key-C-h-dispatch' that also offers backend switches.
+  "Replace `which-key-C-h-dispatch' with combined backend switch support.
 Shows a combined prompt with which-key paging commands and switch
 keys for other help backends, then dispatches accordingly."
   (interactive)
@@ -206,14 +198,6 @@ idle timer as the user navigates sub-prefixes."
   (setq repeatable-lite--prefix-help-pending t)
   (add-hook 'post-command-hook #'repeatable-lite--restore-after-prefix-help))
 
-;; Identical to `which-key-reload-key-sequence' when called with an
-;; argument, so all call sites now use the which-key version directly.
-;; (defun repeatable-lite--reload-key-sequence (key-seq)
-;;   "Reload KEY-SEQ into the command loop."
-;;   (let ((next-event (mapcar (lambda (ev) (cons t ev)) key-seq)))
-;;     (setq prefix-arg current-prefix-arg
-;;           unread-command-events next-event)))
-
 (defun repeatable-lite--kill-which-key (&optional replay-keys)
   "Kill the which-key buffer and restore original which-key state.
 When REPLAY-KEYS is non-nil, reload that key sequence into the
@@ -221,23 +205,17 @@ command loop so Emacs continues from those keys."
   (interactive)
   (let ((buf (get-buffer which-key-buffer-name)))
     (when (bufferp buf) (kill-buffer buf)))
-  (when repeatable-lite--active
-    (setq which-key-idle-delay repeatable-lite--saved-idle-delay
-          which-key-idle-secondary-delay repeatable-lite--saved-idle-secondary-delay
-          which-key-persistent-popup repeatable-lite--saved-persistent-popup
-          echo-keystrokes repeatable-lite--saved-echo-keystrokes
-          repeatable-lite--active nil)
+  (when repeatable-lite--saved-settings
+    (setq which-key-idle-delay (plist-get repeatable-lite--saved-settings :idle-delay)
+          which-key-idle-secondary-delay (plist-get repeatable-lite--saved-settings :idle-secondary-delay)
+          which-key-persistent-popup (plist-get repeatable-lite--saved-settings :persistent-popup)
+          echo-keystrokes (plist-get repeatable-lite--saved-settings :echo-keystrokes)
+          repeatable-lite--saved-settings nil)
     (which-key--start-timer))
   (setq prefix-help-command 'repeatable-lite--versatile-C-h
         current-prefix-arg nil)
   (when replay-keys
     (which-key-reload-key-sequence replay-keys)))
-
-(defvar repeatable-lite--help-keymap nil
-  "Saved keymap for the current help session, used by backend switching.")
-
-(defvar repeatable-lite--help-prefix nil
-  "Saved prefix for the current help session, used by backend switching.")
 
 (defun repeatable-lite--call-backend (backend km prefix)
   "Call BACKEND with KM and PREFIX, handling switch and dismiss.
@@ -280,8 +258,8 @@ minibuffer and any intermediate calls."
 CURRENT-HANDLER is the handler function of the active backend,
 used to exclude it from the switch keys.  Call this from
 `minibuffer-with-setup-hook' in minibuffer-based backends.
-Keys that conflict with `help-char' are shifted (e.g. C-h becomes
-C-S-h) to avoid the built-in help system intercepting them."
+Keys that conflict with `help-char' are shifted (e.g. \\`C-h' becomes
+\\`C-S-h') to avoid the built-in help system intercepting them."
   (dolist (entry repeatable-lite-help-backends)
     (unless (eq (nth 3 entry) current-handler)
       (let* ((key (car entry))
@@ -293,13 +271,12 @@ C-S-h) to avoid the built-in help system intercepting them."
             (repeatable-lite--switch-from-minibuffer key)))))))
 
 (defun repeatable-lite--versatile-C-h ()
-  "Dispatch to a help backend after \\`C-h' in a prefix sequence.
+  "Dispatch to a help backend after \\`C-h' press in a prefix sequence.
 Available backends are configured via `repeatable-lite-help-backends'."
   (interactive)
   (let* ((keys (this-command-keys-vector))
          (prefix (seq-take keys (1- (length keys))))
-         (orig-km (key-binding prefix 'accept-default))
-         (km (when orig-km (copy-keymap orig-km)))
+         (km (key-binding prefix 'accept-default))
          (prompt (concat
                   (mapconcat
                    (lambda (entry)
@@ -337,47 +314,69 @@ Available backends are configured via `repeatable-lite-help-backends'."
      (t (repeatable-lite--kill-which-key)))))
 
 (defun repeatable-lite--read-key-sequence ()
-  "Read and dispatch a key sequence during a repeatable loop."
-  (let* ((ksv (read-key-sequence-vector nil))
-         (last-key-vector (vector (aref ksv (1- (length ksv)))))
-         (last-key (key-description last-key-vector))
-         (key (key-description ksv))
-         (local-binding (keymap-lookup nil key))
-         (global-binding (keymap-lookup nil last-key)))
-    (cond
-     ((string= last-key "C-u") (repeatable-lite--process-undefined ksv))
-     ((string= last-key "C-h") (funcall prefix-help-command))
-     (local-binding
-      (cond
-       ((keymapp local-binding)
-        ;; Sub-prefix: update which-key display and continue reading
-        (if (get-buffer which-key-buffer-name)
-            (progn
-              (which-key--create-buffer-and-show ksv)
-              (which-key-reload-key-sequence ksv)
-              (repeatable-lite--read-key-sequence))
-          (repeatable-lite--kill-which-key ksv)))
-       (t
-        (unless (and (symbolp local-binding)
-                     (string-prefix-p "repeatable-lite-wrap-" (symbol-name local-binding)))
-          (repeatable-lite--kill-which-key))
-        (call-interactively local-binding))))
-     (global-binding
-      (cond
-       ((keymapp global-binding)
-        (if (get-buffer which-key-buffer-name)
-            (progn
-              (which-key--create-buffer-and-show last-key-vector global-binding)
-              (repeatable-lite--read-key-sequence))
-          (repeatable-lite--kill-which-key last-key-vector)))
-       (t
-        (repeatable-lite--kill-which-key)
-        (execute-kbd-macro last-key-vector))))
-     ((string= last-key "C-S-x")
-      (repeatable-lite--kill-which-key [24]))
-     (t
-      (message "No binding in local or global maps %s" key)
-      (repeatable-lite--kill-which-key)))))
+  "Read and dispatch key sequences during a repeatable loop."
+  (let ((continue t))
+    (while continue
+      (setq continue nil)
+      (let ((ksv (read-key-sequence-vector nil)))
+        (if (or (null ksv) (zerop (length ksv)))
+            (repeatable-lite--kill-which-key)
+          (let* ((last-key-vector
+                  (vector (aref ksv (1- (length ksv)))))
+                 (last-key
+                  (key-description last-key-vector))
+                 (key (key-description ksv))
+                 (local-binding
+                  (keymap-lookup nil key))
+                 (global-binding
+                  (keymap-lookup nil last-key)))
+            (cond
+             ((string= last-key "C-u")
+              (repeatable-lite--process-undefined ksv))
+             ((string= last-key "C-h")
+              (funcall prefix-help-command))
+             (local-binding
+              (cond
+               ((keymapp local-binding)
+                (if (get-buffer which-key-buffer-name)
+                    (progn
+                      (which-key--create-buffer-and-show
+                       ksv)
+                      (which-key-reload-key-sequence ksv)
+                      (setq continue t))
+                  (repeatable-lite--kill-which-key ksv)))
+               (t
+                (unless
+                    (and
+                     (symbolp local-binding)
+                     (string-prefix-p
+                      "repeatable-lite-wrap-"
+                      (symbol-name local-binding)))
+                  (repeatable-lite--kill-which-key))
+                (call-interactively local-binding))))
+             (global-binding
+              (cond
+               ((keymapp global-binding)
+                (if (get-buffer which-key-buffer-name)
+                    (progn
+                      (which-key--create-buffer-and-show
+                       last-key-vector global-binding)
+                      (setq continue t))
+                  (repeatable-lite--kill-which-key
+                   last-key-vector)))
+               (t
+                (repeatable-lite--kill-which-key)
+                (execute-kbd-macro last-key-vector))))
+             ;; Some terminals send C-S-x when the
+             ;; user types C-x while a repeatable prefix
+             ;; is active.  Replay as plain C-x.
+             ((string= last-key "C-S-x")
+              (repeatable-lite--kill-which-key [24]))
+             (t
+              (message
+               "No binding in local or global maps %s"
+               key)
+              (repeatable-lite--kill-which-key)))))))))
 
 ;;;###autoload
 (defmacro repeatable-lite-wrap (function)
@@ -385,11 +384,14 @@ Available backends are configured via `repeatable-lite-help-backends'."
 After calling the wrapped command, the prefix keymap stays active
 so you can press another key without re-typing the prefix.
 
-FUNCTION can be a symbol or a lambda.
+FUNCTION must be a symbol naming an interactive command.
 
 Usage:
   (define-key my-map \"h\" (repeatable-lite-wrap windmove-left))
   (define-key my-map \"l\" (repeatable-lite-wrap windmove-right))"
+  (unless (symbolp function)
+    (error "`repeatable-lite-wrap' requires a symbol, got %S"
+           function))
   `(defun ,(intern (format "repeatable-lite-wrap-%s" function)) ()
      (interactive)
      (let* ((keys (this-command-keys-vector))

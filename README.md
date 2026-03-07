@@ -39,16 +39,16 @@ Clone the repository and add it to your `load-path`:
 
 ## Usage
 
-The main entry point is the `**` macro, which wraps any interactive command to make it repeatable within its prefix keymap.
+The main entry point is the `repeatable-lite-wrap` macro, which wraps any interactive command to make it repeatable within its prefix keymap.
 
 ### Example with general.el
 
 ```elisp
 (general-define-key
- "C-c w h" (** windmove-left)
- "C-c w l" (** windmove-right)
- "C-c w j" (** windmove-down)
- "C-c w k" (** windmove-up))
+ "C-c w h" (repeatable-lite-wrap windmove-left)
+ "C-c w l" (repeatable-lite-wrap windmove-right)
+ "C-c w j" (repeatable-lite-wrap windmove-down)
+ "C-c w k" (repeatable-lite-wrap windmove-up))
 ```
 
 After pressing `C-c w h` to move left, you can press `h`/`l`/`j`/`k` repeatedly without the `C-c w` prefix. Press any key outside the keymap to exit.
