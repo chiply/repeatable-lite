@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/chiply/repeatable-lite/compare/v0.2.5...v0.2.6) (2026-03-07)
+
+
+### Bug Fixes
+
+* update copyright year to 2025-2026 ([#14](https://github.com/chiply/repeatable-lite/issues/14)) ([9d2ab4b](https://github.com/chiply/repeatable-lite/commit/9d2ab4baba7469e4eb8b5d76879ab604a120ea6b))
+
 ## [0.2.5](https://github.com/chiply/repeatable-lite/compare/v0.2.4...v0.2.5) (2026-03-07)
 
 
