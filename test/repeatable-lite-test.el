@@ -132,13 +132,13 @@
       (should (equal current-prefix-arg '(16))))))
 
 
-;;; E. Reload Key Sequence
+;;; E. Reload Key Sequence (via which-key-reload-key-sequence)
 
 (ert-deftest repeatable-lite-test-reload/sets-unread-events ()
   "Reloading a key sequence should populate unread-command-events."
   (let ((unread-command-events nil)
         (current-prefix-arg nil))
-    (repeatable-lite--reload-key-sequence [?a ?b])
+    (which-key-reload-key-sequence [?a ?b])
     (should (= (length unread-command-events) 2))
     (should (eq (cdr (nth 0 unread-command-events)) ?a))
     (should (eq (cdr (nth 1 unread-command-events)) ?b))))
@@ -148,7 +148,7 @@
   (let ((unread-command-events nil)
         (current-prefix-arg '(4))
         (prefix-arg nil))
-    (repeatable-lite--reload-key-sequence [?x])
+    (which-key-reload-key-sequence [?x])
     (should (equal prefix-arg '(4)))))
 
 (provide 'repeatable-lite-test)
