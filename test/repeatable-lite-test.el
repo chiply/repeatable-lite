@@ -225,6 +225,29 @@
   (should-not (advice-member-p #'repeatable-lite--process-undefined
                                #'undefined)))
 
+
+;;; H. Read Key Sequence — Empty Guard
+
+(ert-deftest repeatable-lite-test-read-key-sequence/empty-vector ()
+  "Empty key sequence should call kill-which-key and exit loop."
+  (let ((killed nil))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) []))
+              ((symbol-function 'repeatable-lite--kill-which-key)
+               (lambda (&rest _) (setq killed t))))
+      (repeatable-lite--read-key-sequence)
+      (should killed))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/nil-vector ()
+  "Nil key sequence should call kill-which-key and exit loop."
+  (let ((killed nil))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) nil))
+              ((symbol-function 'repeatable-lite--kill-which-key)
+               (lambda (&rest _) (setq killed t))))
+      (repeatable-lite--read-key-sequence)
+      (should killed))))
+
 (provide 'repeatable-lite-test)
 
 ;;; repeatable-lite-test.el ends here
