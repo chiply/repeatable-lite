@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/chiply/repeatable-lite/compare/v0.2.2...v0.2.3) (2026-03-07)
+
+
+### Bug Fixes
+
+* prevent which-key settings corruption, make versatile-C-h extensible ([db3ea4e](https://github.com/chiply/repeatable-lite/commit/db3ea4e1478f2b83d9661bad966636727ed22bbb))
+* update tests for guarded kill-which-key restore ([dcd86a3](https://github.com/chiply/repeatable-lite/commit/dcd86a3a325ca33cfb21881096bec86d3ced8c2c))
+
 ## [0.2.2](https://github.com/chiply/repeatable-lite/compare/v0.2.1...v0.2.2) (2026-03-04)
 
 
