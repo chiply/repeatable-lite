@@ -123,49 +123,44 @@ git push -u origin HEAD
 Check for existing PR: `gh pr view --json url 2>/dev/null`
 If no PR exists, create one: `gh pr create --fill`
 
-### STEP 6: Wait for ALL CI checks to pass
+### STEP 6: Wait for ALL CI checks and Copilot review to pass
 
-A push may trigger multiple workflows and jobs. ALL must pass.
+A push triggers CI workflows and a Copilot code review (configured via repository
+ruleset with "Review new pushes" enabled). ALL must reach a terminal state.
 
-Expected jobs for this project:
+Expected checks for this project:
 - `CI / test` — 4 jobs: (ubuntu-latest + windows-latest) x (Emacs 30.2 + snapshot)
 - `CI / lint` — 1 job: ubuntu-latest, Emacs 30.2
+- `Copilot` — code review (appears as a review, not a check)
 
-Poll with: `gh pr checks`
-Repeat until every check reaches a terminal state.
+Poll CI with: `gh pr checks`
+Poll Copilot with: `gh pr view --json reviews --jq '.reviews[] | select(.author.login == "copilot-pull-request-reviewer")'`
+Read Copilot inline comments: `gh api repos/{owner}/{repo}/pulls/{pr-number}/comments`
 
-If a check fails:
+Repeat until every CI check passes AND the Copilot review has appeared.
+
+If a CI check fails:
 1. Read logs: `gh run view <run-id> --log-failed`
 2. If real failure: fix code, re-run Step 3, `git add -A && git commit`, `git push`, poll again.
 3. If flaky/infra: `gh run rerun <run-id> --failed`
 4. If same check fails 3 times: STOP and ask user. This is the only valid reason to prompt.
 
-Do NOT proceed until every check passes.
+### STEP 7: Act on Copilot feedback
 
-### STEP 7: Check for Copilot review
-
-```
-gh pr view --json reviews,comments
-gh api repos/{owner}/{repo}/pulls/{pr-number}/comments
-```
-
-Poll every 30 seconds, up to 5 minutes. If no Copilot review appears, proceed to Final Summary.
-
-### STEP 8: Act on Copilot feedback
-
-For each Copilot comment:
+For each Copilot inline comment:
 - Skip "nitpick" severity.
 - Implement all other suggestions.
 
-### STEP 9: Re-validate and re-push
+If no actionable comments, proceed to Final Summary.
+
+### STEP 8: Re-validate and re-push
 
 1. Re-run Step 3 pre-flight checks.
 2. Re-run Step 4 local CodeRabbit review (full iteration loop).
 3. `git add -A && git commit -m "fix: address copilot feedback"` then `git push`.
-4. Go back to Step 6 (wait for CI).
-5. Go back to Step 7 (check for new Copilot comments).
+4. Go back to Step 6 (wait for CI + Copilot).
 
-Stop when: CI passes AND no new Copilot comments, OR 3 iterations completed.
+Stop when: CI passes AND no new actionable Copilot comments, OR 3 iterations completed.
 
 ### FINAL SUMMARY
 
