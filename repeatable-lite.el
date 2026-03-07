@@ -318,48 +318,65 @@ Available backends are configured via `repeatable-lite-help-backends'."
   (let ((continue t))
     (while continue
       (setq continue nil)
-      (let* ((ksv (read-key-sequence-vector nil))
-             (last-key-vector (vector (aref ksv (1- (length ksv)))))
-             (last-key (key-description last-key-vector))
-             (key (key-description ksv))
-             (local-binding (keymap-lookup nil key))
-             (global-binding (keymap-lookup nil last-key)))
-        (cond
-         ((string= last-key "C-u") (repeatable-lite--process-undefined ksv))
-         ((string= last-key "C-h") (funcall prefix-help-command))
-         (local-binding
-          (cond
-           ((keymapp local-binding)
-            ;; Sub-prefix: update which-key display and continue reading
-            (if (get-buffer which-key-buffer-name)
-                (progn
-                  (which-key--create-buffer-and-show ksv)
-                  (which-key-reload-key-sequence ksv)
-                  (setq continue t))
-              (repeatable-lite--kill-which-key ksv)))
-           (t
-            (unless (and (symbolp local-binding)
-                         (string-prefix-p "repeatable-lite-wrap-" (symbol-name local-binding)))
-              (repeatable-lite--kill-which-key))
-            (call-interactively local-binding))))
-         (global-binding
-          (cond
-           ((keymapp global-binding)
-            (if (get-buffer which-key-buffer-name)
-                (progn
-                  (which-key--create-buffer-and-show last-key-vector global-binding)
-                  (setq continue t))
-              (repeatable-lite--kill-which-key last-key-vector)))
-           (t
-            (repeatable-lite--kill-which-key)
-            (execute-kbd-macro last-key-vector))))
-         ;; Some terminals send C-S-x when the user types C-x while a
-         ;; repeatable prefix is active.  Replay it as plain C-x (code 24).
-         ((string= last-key "C-S-x")
-          (repeatable-lite--kill-which-key [24]))
-         (t
-          (message "No binding in local or global maps %s" key)
-          (repeatable-lite--kill-which-key)))))))
+      (let ((ksv (read-key-sequence-vector nil)))
+	(if (or (null ksv) (zerop (length ksv)))
+	    (repeatable-lite--kill-which-key)
+	  (let* ((last-key-vector
+		  (vector (aref ksv (1- (length ksv)))))
+		 (last-key
+		  (key-description last-key-vector))
+		 (key (key-description ksv))
+		 (local-binding
+		  (keymap-lookup nil key))
+		 (global-binding
+		  (keymap-lookup nil last-key)))
+	    (cond
+	     ((string= last-key "C-u")
+	      (repeatable-lite--process-undefined ksv))
+	     ((string= last-key "C-h")
+	      (funcall prefix-help-command))
+	     (local-binding
+	      (cond
+	       ((keymapp local-binding)
+		(if (get-buffer which-key-buffer-name)
+		    (progn
+		      (which-key--create-buffer-and-show
+		       ksv)
+		      (which-key-reload-key-sequence ksv)
+		      (setq continue t))
+		  (repeatable-lite--kill-which-key ksv)))
+	       (t
+		(unless
+		    (and
+		     (symbolp local-binding)
+		     (string-prefix-p
+		      "repeatable-lite-wrap-"
+		      (symbol-name local-binding)))
+		  (repeatable-lite--kill-which-key))
+		(call-interactively local-binding))))
+	     (global-binding
+	      (cond
+	       ((keymapp global-binding)
+		(if (get-buffer which-key-buffer-name)
+		    (progn
+		      (which-key--create-buffer-and-show
+		       last-key-vector global-binding)
+		      (setq continue t))
+		  (repeatable-lite--kill-which-key
+		   last-key-vector)))
+	       (t
+		(repeatable-lite--kill-which-key)
+		(execute-kbd-macro last-key-vector))))
+	     ;; Some terminals send C-S-x when the
+	     ;; user types C-x while a repeatable prefix
+	     ;; is active.  Replay as plain C-x.
+	     ((string= last-key "C-S-x")
+	      (repeatable-lite--kill-which-key [24]))
+	     (t
+	      (message
+	       "No binding in local or global maps %s"
+	       key)
+	      (repeatable-lite--kill-which-key)))))))))
 
 ;;;###autoload
 (defmacro repeatable-lite-wrap (function)
