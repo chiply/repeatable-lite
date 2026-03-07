@@ -94,6 +94,14 @@ HANDLER is called with two arguments: KEYMAP and PREFIX."
   :type '(repeat (list character string string function))
   :group 'repeatable-lite)
 
+(defcustom repeatable-lite-dismiss-key ?q
+  "Key to dismiss help and return to the active prefix.
+In the which-key C-h dispatch, pressing this key hides the popup
+and replays the prefix so the user can continue typing.
+In minibuffer-based backends, \\`C-g' serves the same purpose."
+  :type 'character
+  :group 'repeatable-lite)
+
 ;; Replaced by `which-key--start-timer' which handles the same
 ;; cancel+recreate pattern and also manages `which-key--secondary-timer-active'.
 ;; (defun repeatable-lite--restart-which-key-timer ()
@@ -152,6 +160,7 @@ keys for other help backends, then dispatches accordingly."
              (lambda (e)
                (not (eq (nth 3 e) #'repeatable-lite--prefix-help)))
              repeatable-lite-help-backends))
+           (dismiss-label (key-description (vector repeatable-lite-dismiss-key)))
            (switch-prompt
             (when switch-entries
               (concat " "
@@ -164,12 +173,16 @@ keys for other help backends, then dispatches accordingly."
                             (concat
                              (substitute-command-keys
                               which-key-C-h-map-prompt)
-                             switch-prompt)
+                             switch-prompt
+                             (format " %s → dismiss" dismiss-label))
                             'face 'which-key-note-face)))
            (ev (read-event prompt))
            (backend (assq ev repeatable-lite-help-backends)))
       (setq this-command 'which-key-C-h-dispatch)
       (cond
+       ((eq ev repeatable-lite-dismiss-key)
+        (remove-hook 'post-command-hook #'repeatable-lite--restore-after-prefix-help)
+        (repeatable-lite--kill-which-key repeatable-lite--help-prefix))
        ((and backend
              (not (eq (nth 3 backend) #'repeatable-lite--prefix-help)))
         (repeatable-lite--switch-from-which-key ev))
@@ -227,16 +240,22 @@ command loop so Emacs continues from those keys."
   "Saved prefix for the current help session, used by backend switching.")
 
 (defun repeatable-lite--call-backend (backend km prefix)
-  "Call BACKEND with KM and PREFIX, handling switch requests.
+  "Call BACKEND with KM and PREFIX, handling switch and dismiss.
 If the backend throws to `repeatable-lite-switch' with another
-backend key, the target backend is called instead."
+backend key, the target backend is called instead.
+If the backend signals `quit' (e.g. \\`C-g' in a minibuffer),
+the prefix is replayed so the user can continue typing."
   (let ((next-key (catch 'repeatable-lite-switch
-                    (funcall (nth 3 backend) km prefix)
-                    nil)))
-    (when next-key
+                    (condition-case nil
+                        (progn (funcall (nth 3 backend) km prefix) nil)
+                      (quit :dismiss)))))
+    (cond
+     ((eq next-key :dismiss)
+      (which-key-reload-key-sequence prefix))
+     (next-key
       (let ((target (assq next-key repeatable-lite-help-backends)))
         (when target
-          (repeatable-lite--call-backend target km prefix))))))
+          (repeatable-lite--call-backend target km prefix)))))))
 
 (defun repeatable-lite--switch-from-which-key (target-key)
   "Switch from which-key help to the backend at TARGET-KEY."
