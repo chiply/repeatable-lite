@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.5](https://github.com/chiply/repeatable-lite/compare/v0.2.4...v0.2.5) (2026-03-07)
+
+
+### Features
+
+* add dismiss key to hide help while preserving active prefix ([3872d0e](https://github.com/chiply/repeatable-lite/commit/3872d0ec890e74cf28e573571b6e95a3eed41472))
+* add generic backend switching and combined C-h dispatch prompt ([7b3b927](https://github.com/chiply/repeatable-lite/commit/7b3b927b27c4b048ec5da578a62cebb1f39f2f3f))
+
+
+### Bug Fixes
+
+* update tests to use which-key-reload-key-sequence ([f5b95fb](https://github.com/chiply/repeatable-lite/commit/f5b95fb54fd9f892c15e3b170c1febb899f0695f))
+
 ## [0.2.4](https://github.com/chiply/repeatable-lite/compare/v0.2.3...v0.2.4) (2026-03-07)
 
 
