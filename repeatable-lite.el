@@ -313,70 +313,80 @@ Available backends are configured via `repeatable-lite-help-backends'."
         (seq-take ksv (1- (length ksv))))))
      (t (repeatable-lite--kill-which-key)))))
 
+(defun repeatable-lite--popup-live-p ()
+  "Return the which-key popup buffer when it is alive, else nil."
+  (get-buffer which-key-buffer-name))
+
+(defun repeatable-lite--wrapped-command-p (binding)
+  "Return non-nil when BINDING is a `repeatable-lite-wrap' generated command.
+Such commands re-enter the repeatable loop themselves, so the
+which-key popup must be left in place when they run."
+  (and (symbolp binding)
+       (string-prefix-p "repeatable-lite-wrap-" (symbol-name binding))))
+
 (defun repeatable-lite--read-key-sequence ()
-  "Read and dispatch key sequences during a repeatable loop."
-  (let ((continue t))
-    (while continue
-      (setq continue nil)
+  "Read and dispatch key sequences during a repeatable loop.
+Read one key sequence and act on it.  Most outcomes end the loop:
+a command runs, an unbound key exits, or help is invoked.  The loop
+only iterates when the user descends into a nested prefix keymap, in
+which case the deeper which-key popup is shown and another key is read."
+  (let ((reading t))
+    (while reading
+      (setq reading nil)
       (let ((ksv (read-key-sequence-vector nil)))
-        (if (or (null ksv) (zerop (length ksv)))
-            (repeatable-lite--kill-which-key)
-          (let* ((last-key-vector
-                  (vector (aref ksv (1- (length ksv)))))
-                 (last-key
-                  (key-description last-key-vector))
+        (cond
+         ;; No input (e.g. the event queue was drained): just clean up.
+         ((or (null ksv) (zerop (length ksv)))
+          (repeatable-lite--kill-which-key))
+         (t
+          (let* ((last-key-vector (vector (aref ksv (1- (length ksv)))))
+                 (last-key (key-description last-key-vector))
                  (key (key-description ksv))
-                 (local-binding
-                  (keymap-lookup nil key))
-                 (global-binding
-                  (keymap-lookup nil last-key)))
+                 ;; Binding of the whole sequence vs. of the final key alone,
+                 ;; both resolved against the currently active keymaps.
+                 (full-binding (keymap-lookup nil key))
+                 (last-key-binding (keymap-lookup nil last-key)))
             (cond
+             ;; C-u: accumulate the prefix argument (--process-undefined
+             ;; replays the prefix to keep the loop going).
              ((string= last-key "C-u")
               (repeatable-lite--process-undefined ksv))
+             ;; C-h: hand off to the configured help backend.
              ((string= last-key "C-h")
               (funcall prefix-help-command))
-             (local-binding
-              (cond
-               ((keymapp local-binding)
-                (if (get-buffer which-key-buffer-name)
-                    (progn
-                      (which-key--create-buffer-and-show
-                       ksv)
-                      (which-key-reload-key-sequence ksv)
-                      (setq continue t))
-                  (repeatable-lite--kill-which-key ksv)))
-               (t
-                (unless
-                    (and
-                     (symbolp local-binding)
-                     (string-prefix-p
-                      "repeatable-lite-wrap-"
-                      (symbol-name local-binding)))
+             ;; The whole sequence is bound.
+             (full-binding
+              (if (keymapp full-binding)
+                  ;; A nested prefix: show its popup and read another key.
+                  (if (repeatable-lite--popup-live-p)
+                      (progn
+                        (which-key--create-buffer-and-show ksv)
+                        (which-key-reload-key-sequence ksv)
+                        (setq reading t))
+                    (repeatable-lite--kill-which-key ksv))
+                ;; A command: run it, dismissing the popup first unless the
+                ;; command is itself a wrapper that will reopen the loop.
+                (unless (repeatable-lite--wrapped-command-p full-binding)
                   (repeatable-lite--kill-which-key))
-                (call-interactively local-binding))))
-             (global-binding
-              (cond
-               ((keymapp global-binding)
-                (if (get-buffer which-key-buffer-name)
-                    (progn
-                      (which-key--create-buffer-and-show
-                       last-key-vector global-binding)
-                      (setq continue t))
-                  (repeatable-lite--kill-which-key
-                   last-key-vector)))
-               (t
+                (call-interactively full-binding)))
+             ;; Only the final key is bound (reachable without the prefix).
+             (last-key-binding
+              (if (keymapp last-key-binding)
+                  (if (repeatable-lite--popup-live-p)
+                      (progn
+                        (which-key--create-buffer-and-show
+                         last-key-vector last-key-binding)
+                        (setq reading t))
+                    (repeatable-lite--kill-which-key last-key-vector))
                 (repeatable-lite--kill-which-key)
-                (execute-kbd-macro last-key-vector))))
-             ;; Some terminals send C-S-x when the
-             ;; user types C-x while a repeatable prefix
-             ;; is active.  Replay as plain C-x.
+                (execute-kbd-macro last-key-vector)))
+             ;; Some terminals send C-S-x when the user types C-x while a
+             ;; repeatable prefix is active.  Replay it as plain C-x.
              ((string= last-key "C-S-x")
               (repeatable-lite--kill-which-key [24]))
              (t
-              (message
-               "No binding in local or global maps %s"
-               key)
-              (repeatable-lite--kill-which-key)))))))))
+              (message "No binding in local or global maps %s" key)
+              (repeatable-lite--kill-which-key))))))))))
 
 ;;;###autoload
 (defmacro repeatable-lite-wrap (function)
@@ -401,7 +411,7 @@ Usage:
        (setq repeatable-lite-current-prefix nil)
        (setq current-prefix-arg nil)
        (which-key-reload-key-sequence prefix)
-       (unless (bufferp (get-buffer which-key-buffer-name))
+       (unless (repeatable-lite--popup-live-p)
          (setq prefix-help-command 'repeatable-lite--versatile-C-h))
        (repeatable-lite--read-key-sequence))))
 

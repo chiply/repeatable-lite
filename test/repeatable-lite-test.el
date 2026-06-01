@@ -248,6 +248,111 @@
       (repeatable-lite--read-key-sequence)
       (should killed))))
 
+;;; I. Read Key Sequence — Dispatch
+
+(ert-deftest repeatable-lite-test-read-key-sequence/c-u-routes-to-process-undefined ()
+  "A trailing C-u should be routed to --process-undefined with the key vector."
+  (let ((captured 'none))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) (vector ?\C-u)))
+              ((symbol-function 'repeatable-lite--process-undefined)
+               (lambda (ksv) (setq captured ksv))))
+      (repeatable-lite--read-key-sequence)
+      (should (equal captured (vector ?\C-u))))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/c-h-invokes-prefix-help-command ()
+  "A trailing C-h should invoke `prefix-help-command'."
+  (let ((called nil))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) (vector ?\C-h))))
+      (let ((prefix-help-command (lambda () (setq called t))))
+        (repeatable-lite--read-key-sequence))
+      (should called))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/plain-command-kills-then-runs ()
+  "A bound non-wrapper command should dismiss the popup, then run."
+  (let ((killed nil) (ran nil))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) (vector ?z)))
+              ((symbol-function 'keymap-lookup)
+               (lambda (_map key &rest _)
+                 (when (string= key "z") 'some-plain-command)))
+              ((symbol-function 'repeatable-lite--kill-which-key)
+               (lambda (&rest _) (setq killed t)))
+              ((symbol-function 'call-interactively)
+               (lambda (cmd &rest _) (setq ran cmd))))
+      (repeatable-lite--read-key-sequence)
+      (should killed)
+      (should (eq ran 'some-plain-command)))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/wrapped-command-preserves-popup ()
+  "A repeatable-lite-wrap command should run WITHOUT dismissing the popup."
+  (let ((killed nil) (ran nil))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) (vector ?z)))
+              ((symbol-function 'keymap-lookup)
+               (lambda (_map key &rest _)
+                 (when (string= key "z") 'repeatable-lite-wrap-foo)))
+              ((symbol-function 'repeatable-lite--kill-which-key)
+               (lambda (&rest _) (setq killed t)))
+              ((symbol-function 'call-interactively)
+               (lambda (cmd &rest _) (setq ran cmd))))
+      (repeatable-lite--read-key-sequence)
+      (should-not killed)
+      (should (eq ran 'repeatable-lite-wrap-foo)))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/unbound-key-exits ()
+  "An unbound key should kill which-key and exit the loop."
+  (let ((killed nil))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) (vector ?z)))
+              ((symbol-function 'keymap-lookup) (lambda (&rest _) nil))
+              ((symbol-function 'message) (lambda (&rest _) nil))
+              ((symbol-function 'repeatable-lite--kill-which-key)
+               (lambda (&rest _) (setq killed t))))
+      (repeatable-lite--read-key-sequence)
+      (should killed))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/nested-keymap-no-popup-replays ()
+  "Descending into a nested prefix with no live popup should kill+replay and exit."
+  (let ((replay 'none))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _) (vector ?x)))
+              ((symbol-function 'keymap-lookup)
+               (lambda (_map key &rest _)
+                 (when (string= key "x") (make-sparse-keymap))))
+              ((symbol-function 'repeatable-lite--popup-live-p) (lambda () nil))
+              ((symbol-function 'repeatable-lite--kill-which-key)
+               (lambda (&optional r) (setq replay r))))
+      (repeatable-lite--read-key-sequence)
+      (should (equal replay (vector ?x))))))
+
+(ert-deftest repeatable-lite-test-read-key-sequence/nested-keymap-with-popup-continues ()
+  "Descending into a nested prefix with a live popup should show it and loop."
+  (let ((shown nil) (n 0))
+    (cl-letf (((symbol-function 'read-key-sequence-vector)
+               (lambda (&rest _)
+                 (setq n (1+ n))
+                 (if (= n 1) (vector ?x) [])))
+              ((symbol-function 'keymap-lookup)
+               (lambda (_map key &rest _)
+                 (when (string= key "x") (make-sparse-keymap))))
+              ((symbol-function 'repeatable-lite--popup-live-p) (lambda () t))
+              ((symbol-function 'which-key--create-buffer-and-show)
+               (lambda (&rest _) (setq shown t)))
+              ((symbol-function 'which-key-reload-key-sequence) #'ignore)
+              ((symbol-function 'repeatable-lite--kill-which-key) #'ignore))
+      (repeatable-lite--read-key-sequence)
+      (should shown)
+      (should (= n 2)))))
+
+(ert-deftest repeatable-lite-test-wrapped-command-p/recognizes-wrappers ()
+  "--wrapped-command-p should match only repeatable-lite-wrap- symbols."
+  (should (repeatable-lite--wrapped-command-p 'repeatable-lite-wrap-foo))
+  (should-not (repeatable-lite--wrapped-command-p 'foo))
+  (should-not (repeatable-lite--wrapped-command-p "repeatable-lite-wrap-foo"))
+  (should-not (repeatable-lite--wrapped-command-p nil)))
+
 (provide 'repeatable-lite-test)
 
 ;;; repeatable-lite-test.el ends here
