@@ -1,0 +1,71 @@
+;;; demo-init.el --- Bare-Emacs install + config demo for repeatable-lite -*- lexical-binding: t; -*-
+
+;; This file is the canonical, no-BS example of installing and configuring
+;; repeatable-lite in a stock Emacs (>= 30.1) with ZERO dependency on any
+;; personal configuration.  It exists so the package can be smoke-tested in a
+;; clean room, and so users have a copy-pasteable reference.
+;;
+;; Run it one of two ways:
+;;
+;;   1. Plain:     emacs -Q -l demo/demo-init.el
+;;   2. Sandboxed: ./demo/run.sh        (throwaway ~/.emacs.d + live-eval server)
+;;
+;; which-key is built into Emacs 30.1+, so there is nothing external to install.
+;;
+;; End users would typically just write this in their own init:
+;;
+;;     (use-package repeatable-lite
+;;       :vc (:url "https://github.com/chiply/repeatable-lite" :rev :newest)
+;;       :config (repeatable-lite-mode 1))
+
+;;; Code:
+
+;; t   -> load THIS working-tree checkout (test your local changes; edits are live)
+;; nil -> install the PUBLISHED package from GitHub (reproduce the end-user path)
+(defvar demo-install-from-local t)
+
+;;;; Package system bootstrap (stock package.el, no third-party manager)
+
+(require 'package)
+(setq package-archives
+      '(("gnu"    . "https://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+        ("melpa"  . "https://melpa.org/packages/")))
+(package-initialize)
+(require 'use-package)
+(setq use-package-always-ensure nil)   ; be explicit; nothing is silently pulled
+
+;;;; Install the package under test
+
+(if demo-install-from-local
+    ;; Local checkout: repo root = parent of this demo/ directory.  Putting it on
+    ;; load-path points straight at the working tree, so live edits + reloads
+    ;; take effect immediately.
+    (progn
+      (add-to-list 'load-path
+                   (directory-file-name
+                    (file-name-directory
+                     (directory-file-name
+                      (file-name-directory (or load-file-name buffer-file-name))))))
+      (use-package repeatable-lite :demand t))
+  (use-package repeatable-lite
+    :vc (:url "https://github.com/chiply/repeatable-lite" :rev :newest)
+    :demand t))
+
+;;;; Configure it — a real, pressable demonstration of the feature
+
+(with-eval-after-load 'repeatable-lite
+  (repeatable-lite-mode 1)
+  ;; Make a `C-c w' window-movement prefix repeatable: after C-c w h you can keep
+  ;; tapping h/j/k/l to keep moving, no prefix re-type.  Press any other key to exit.
+  (define-prefix-command 'demo-window-map)
+  (keymap-set global-map "C-c w" 'demo-window-map)
+  (keymap-set demo-window-map "h" (repeatable-lite-wrap windmove-left))
+  (keymap-set demo-window-map "j" (repeatable-lite-wrap windmove-down))
+  (keymap-set demo-window-map "k" (repeatable-lite-wrap windmove-up))
+  (keymap-set demo-window-map "l" (repeatable-lite-wrap windmove-right))
+  (message
+   "repeatable-lite demo ready.  Try: C-x 2 / C-x 3 to split, then C-c w h/j/k/l and keep tapping."))
+
+(provide 'demo-init)
+;;; demo-init.el ends here

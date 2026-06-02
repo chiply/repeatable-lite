@@ -1,6 +1,6 @@
-# repeatable-lite
+# repeatable
 
-[![CI](https://github.com/chiply/repeatable-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/chiply/repeatable-lite/actions/workflows/ci.yml)
+[![CI](https://github.com/chiply/repeatable/actions/workflows/ci.yml/badge.svg)](https://github.com/chiply/repeatable/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A lightweight Emacs package for making prefix key commands repeatable with which-key integration.
@@ -14,17 +14,17 @@ After executing a command within a prefix keymap, you stay in that keymap and ca
 ### With elpaca (use-package)
 
 ```elisp
-(use-package repeatable-lite
-  :ensure (:host github :repo "chiply/repeatable-lite")
-  :config (repeatable-lite-mode 1))
+(use-package repeatable
+  :ensure (:host github :repo "chiply/repeatable")
+  :config (repeatable-mode 1))
 ```
 
 ### With straight.el (use-package)
 
 ```elisp
-(use-package repeatable-lite
-  :straight (:host github :repo "chiply/repeatable-lite")
-  :config (repeatable-lite-mode 1))
+(use-package repeatable
+  :straight (:host github :repo "chiply/repeatable")
+  :config (repeatable-mode 1))
 ```
 
 ### Manual
@@ -32,23 +32,23 @@ After executing a command within a prefix keymap, you stay in that keymap and ca
 Clone the repository and add it to your `load-path`:
 
 ```elisp
-(add-to-list 'load-path "/path/to/repeatable-lite")
-(require 'repeatable-lite)
-(repeatable-lite-mode 1)
+(add-to-list 'load-path "/path/to/repeatable")
+(require 'repeatable)
+(repeatable-mode 1)
 ```
 
 ## Usage
 
-The main entry point is the `repeatable-lite-wrap` macro, which wraps any interactive command to make it repeatable within its prefix keymap.
+The main entry point is the `repeatable-wrap` macro, which wraps any interactive command to make it repeatable within its prefix keymap.
 
 ### Example with general.el
 
 ```elisp
 (general-define-key
- "C-c w h" (repeatable-lite-wrap windmove-left)
- "C-c w l" (repeatable-lite-wrap windmove-right)
- "C-c w j" (repeatable-lite-wrap windmove-down)
- "C-c w k" (repeatable-lite-wrap windmove-up))
+ "C-c w h" (repeatable-wrap windmove-left)
+ "C-c w l" (repeatable-wrap windmove-right)
+ "C-c w j" (repeatable-wrap windmove-down)
+ "C-c w k" (repeatable-wrap windmove-up))
 ```
 
 After pressing `C-c w h` to move left, you can press `h`/`l`/`j`/`k` repeatedly without the `C-c w` prefix. Press any key outside the keymap to exit.

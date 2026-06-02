@@ -61,7 +61,7 @@ jobs:
         run: eask compile
 
       - name: Run tests
-        run: eask test ert test/repeatable-lite-test.el
+        run: eask test ert test/repeatable-test.el
 
   lint:
     runs-on: ubuntu-latest

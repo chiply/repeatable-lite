@@ -1,0 +1,1 @@
+(repeatable :fetcher github :repo "chiply/repeatable")
