@@ -1,4 +1,4 @@
-# Contributing to repeatable-lite
+# Contributing to repeatable
 
 Thanks for your interest in contributing! This guide covers everything you
 need to get started.
@@ -11,8 +11,8 @@ need to get started.
 ## Setup
 
 ```sh
-git clone https://github.com/chiply/repeatable-lite.git
-cd repeatable-lite
+git clone https://github.com/chiply/repeatable.git
+cd repeatable
 eask install-deps --dev
 ```
 
@@ -27,7 +27,7 @@ eask compile
 ### Test
 
 ```sh
-eask test ert test/repeatable-lite-test.el
+eask test ert test/repeatable-test.el
 ```
 
 ### Lint
@@ -54,8 +54,8 @@ eask lint relint
 ## Code style
 
 - Add `;;; -*- lexical-binding: t; -*-` to every source file.
-- Prefix all public symbols with `repeatable-lite-` and private symbols
-  with `repeatable-lite--`.
+- Prefix all public symbols with `repeatable-` and private symbols
+  with `repeatable--`.
 - Include a docstring for every public function and variable.
 - Follow standard Emacs Lisp conventions (two-space body indent, etc.).
 

@@ -1,4 +1,4 @@
-# repeatable-lite
+# repeatable
 
 Emacs Lisp package providing repeatable prefix key commands with which-key integration.
 
@@ -7,7 +7,7 @@ Emacs Lisp package providing repeatable prefix key commands with which-key integ
 ```sh
 eask install-deps --dev   # install dependencies
 eask compile              # byte compile
-eask test ert test/repeatable-lite-test.el  # run tests
+eask test ert test/repeatable-test.el  # run tests
 ```
 
 ## Lint
@@ -26,7 +26,7 @@ eask lint relint
 - Never push directly to `main` — always work on a feature branch
 - Branch from `main` and open a PR for all changes
 - Use conventional commits (`feat:`, `fix:`, `chore:`) — release-please automates versioning
-- Public symbols: `repeatable-lite-` prefix; private symbols: `repeatable-lite--` prefix
+- Public symbols: `repeatable-` prefix; private symbols: `repeatable--` prefix
 - Docstrings on all public functions and variables
 - `;;; -*- lexical-binding: t; -*-` on every source file
 
@@ -37,7 +37,7 @@ Used by the `/review-loop` skill.
 ### Pre-flight
 - Compile: `eask compile`
 - Lint: `eask lint package && eask lint checkdoc && eask lint elisp-lint && eask lint relint`
-- Tests: `eask test ert test/repeatable-lite-test.el`
+- Tests: `eask test ert test/repeatable-test.el`
 
 ### Local Review
 - Severity threshold: ignore "nitpick"
