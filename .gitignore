@@ -3,3 +3,8 @@
 *-pkg.el
 .eask/
 dist/
+demo/.sandbox/
+demo/.server-socket
+# Emacs auto-save / lock files
+\#*\#
+.\#*
