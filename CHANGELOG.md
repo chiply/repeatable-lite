@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/chiply/repeatable/compare/v0.2.6...v0.3.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* the package is now named `repeatable`; the public macro is `repeatable-wrap` and the feature is `(require 'repeatable)`.
+
+### Code Refactoring
+
+* rename package from repeatable-lite to repeatable ([#16](https://github.com/chiply/repeatable/issues/16)) ([2775a8c](https://github.com/chiply/repeatable/commit/2775a8ca3e2bce8e78acfbba65705020bf3fef51))
+
 ## [0.2.6](https://github.com/chiply/repeatable/compare/v0.2.5...v0.2.6) (2026-03-07)
 
 
